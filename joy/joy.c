@@ -13,6 +13,8 @@ enum builtin_words {
 	WORD_POP,
 	WORD_DUP,
 	WORD_SWAP,
+	WORD_CONCAT,
+	WORD_QUOTE,
 
 	WORD_BUILTIN_COUNT,
 };
@@ -25,6 +27,8 @@ char const* builtin_words_name[] = {
 	"WORD_POP",
 	"WORD_DUP",
 	"WORD_SWAP",
+	"WORD_CONCAT",
+	"WORD_QUOTE",
 };
 
 char const* builtin_words_strings[] = {
@@ -35,6 +39,8 @@ char const* builtin_words_strings[] = {
 	"pop",
 	"dup",
 	"swap",
+	"concat",
+	"quote",
 };
 
 word_t* make_quote(word_t* words, int len) {
@@ -51,13 +57,17 @@ word_t* make_quote(word_t* words, int len) {
 
 void print(word_t* code) {
 	int position = 0;
-	int quotes = 0;
-	for (; ; ++code, ++position) {
+	for (; *code != WORD_STOP; ++code, ++position) {
 		printf("[%04x] %s\n", position, builtin_words_name[*code]);
-		if (*code == WORD_LB) ++quotes;
-		if (*code == WORD_RB) --quotes;
-		if (*code == WORD_STOP && !quotes) return;
 	}
+}
+
+void show(word_t* code) {
+	printf("[");
+	for (; *code != WORD_STOP; ++code) {
+		printf(" %s", builtin_words_strings[*code]);
+	}
+	printf(" ]\n");
 }
 
 word_t* stk[STACK_MAX];
@@ -118,7 +128,6 @@ void eval(word_t* code, int position) {
 			++quotes;
 			assert(quotes == 1);
 			printf("entered quote-mode\n");
-			// do nothing, we have just entered quote-mode
 			return eval_quote(code+1, position+1);
 		case WORD_RB:
 			assert(0);
@@ -136,6 +145,37 @@ void eval(word_t* code, int position) {
 			stk[stk_top] = stk[stk_top-1];
 			++stk_top;
 			break;
+		case WORD_CONCAT:
+			{
+				word_t* right = stk[--stk_top];
+				word_t* left  = stk[--stk_top];
+				assert(quote_buffer_len == 0);
+
+				int len_left = 0;
+				while (left[len_left] != WORD_STOP)
+					quote_buffer[quote_buffer_len++] = left[len_left++];
+
+				int len_right = 0;
+				while (right[len_right] != WORD_STOP)
+					quote_buffer[quote_buffer_len++] = right[len_right++];
+
+				stk[stk_top] = make_quote(quote_buffer, quote_buffer_len);
+				quote_buffer_len = 0;
+				++stk_top;
+			} break;
+		case WORD_QUOTE:
+			{
+				word_t* temp = stk[--stk_top];
+				assert(quote_buffer_len == 0);
+				quote_buffer[quote_buffer_len++] = WORD_LB;
+				int len = 0;
+				while (temp[len] != WORD_STOP)
+					quote_buffer[quote_buffer_len++] = temp[len++];
+				quote_buffer[quote_buffer_len++] = WORD_RB;
+				stk[stk_top] = make_quote(quote_buffer, quote_buffer_len);
+				quote_buffer_len = 0;
+				++stk_top;
+			} break;
 		}
 	}
 }
@@ -158,6 +198,11 @@ void basic_test() {
 		WORD_STOP,
 	};
 	eval_all(program);
+
+	printf("STACK STATE:\n");
+	for (int i = 0; i < stk_top; ++i) {
+		show(stk[i]);
+	}
 }
 
 void parse(char* str, word_t* out_code) {
@@ -186,13 +231,40 @@ void parse(char* str, word_t* out_code) {
 
 void parser_test() {
 	printf("==== PARSER TEST ====\n");
+	quotes = 0;
+	stk_top = 0;
+	quote_buffer_len = 0;
+
 	char source[] = "[ [ ] dup ] dup eval";
 	word_t code[100];
 	parse(source, code);
 	eval_all(code);
+
+	printf("STACK STATE:\n");
+	for (int i = 0; i < stk_top; ++i) {
+		show(stk[i]);
+	}
+}
+
+void misc_test() {
+	printf("==== MISC TEST ====\n");
+	quotes = 0;
+	stk_top = 0;
+	quote_buffer_len = 0;
+
+	char source[] = "[ ] quote dup concat eval";
+	word_t code[100];
+	parse(source, code);
+	eval_all(code);
+
+	printf("STACK STATE:\n");
+	for (int i = 0; i < stk_top; ++i) {
+		show(stk[i]);
+	}
 }
 
 int main() {
 	basic_test();
 	parser_test();
+	misc_test();
 }
