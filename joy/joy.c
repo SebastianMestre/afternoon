@@ -55,19 +55,19 @@ word_t* make_quote(word_t* words, int len) {
 #define QUOTE_BUFFER_MAX 1000
 #define STACK_MAX 1000
 
-void print(word_t* code) {
+void print(word_t* code, FILE* fp) {
 	int position = 0;
 	for (; *code != WORD_STOP; ++code, ++position) {
-		printf("[%04x] %s\n", position, builtin_words_name[*code]);
+		fprintf(fp, "[%04x] %s\n", position, builtin_words_name[*code]);
 	}
 }
 
-void show(word_t* code) {
-	printf("[");
+void show(word_t* code, FILE* fp) {
+	fprintf(fp, "[");
 	for (; *code != WORD_STOP; ++code) {
-		printf(" %s", builtin_words_strings[*code]);
+		fprintf(fp, " %s", builtin_words_strings[*code]);
 	}
-	printf(" ]\n");
+	fprintf(fp, " ]\n");
 }
 
 word_t* stk[STACK_MAX];
@@ -82,15 +82,15 @@ void eval(word_t* code, int position);
 void eval_all(word_t* code);
 
 void eval_all(word_t* code) {
-	printf("eval_all:\n");
-	print(code);
-	printf("\n");
+	fprintf(stderr, "eval_all:\n");
+	print(code, stderr);
+	fprintf(stderr, "\n");
 	return eval(code, 0);
 }
 
 void eval_quote(word_t* code, int position) {
 	for (; ; ++code, ++position) {
-		printf("[%04x] %s\n", position, builtin_words_name[*code]);
+		fprintf(stderr, "[%04x] %s\n", position, builtin_words_name[*code]);
 
 		switch (*code) {
 		case WORD_LB:
@@ -100,7 +100,7 @@ void eval_quote(word_t* code, int position) {
 		case WORD_RB:
 			--quotes;
 			if (quotes == 0) {
-				printf("exited quote-mode\n");
+				fprintf(stderr, "exited quote-mode\n");
 				stk[stk_top] = make_quote(quote_buffer, quote_buffer_len);
 				quote_buffer_len = 0;
 				++stk_top;
@@ -119,7 +119,7 @@ void eval_quote(word_t* code, int position) {
 
 void eval(word_t* code, int position) {
 	for (; ; ++code, ++position) {
-		printf("[%04x] %s\n", position, builtin_words_name[*code]);
+		fprintf(stderr, "[%04x] %s\n", position, builtin_words_name[*code]);
 
 		switch (*code) {
 		case WORD_STOP:
@@ -127,7 +127,7 @@ void eval(word_t* code, int position) {
 		case WORD_LB:
 			++quotes;
 			assert(quotes == 1);
-			printf("entered quote-mode\n");
+			fprintf(stderr, "entered quote-mode\n");
 			return eval_quote(code+1, position+1);
 		case WORD_RB:
 			assert(0);
@@ -201,7 +201,7 @@ void basic_test() {
 
 	printf("STACK STATE:\n");
 	for (int i = 0; i < stk_top; ++i) {
-		show(stk[i]);
+		show(stk[i], stdout);
 	}
 }
 
@@ -242,7 +242,7 @@ void parser_test() {
 
 	printf("STACK STATE:\n");
 	for (int i = 0; i < stk_top; ++i) {
-		show(stk[i]);
+		show(stk[i], stdout);
 	}
 }
 
@@ -259,7 +259,7 @@ void misc_test() {
 
 	printf("STACK STATE:\n");
 	for (int i = 0; i < stk_top; ++i) {
-		show(stk[i]);
+		show(stk[i], stdout);
 	}
 }
 
