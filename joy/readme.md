@@ -79,3 +79,86 @@ We have now seen all of Joy. Here is a quick reference:
 
 I think usually Joy implementations also let you assign programs to names, but I
 have not implemented this feature...
+
+# Programming in Joy
+
+Since the only type in joy is that of Joy programs, programming in Joy shares a
+lot with programming in lambda-calculus, but with an imperative feel.
+
+## Booleans
+
+In Joy we write everything in postfix notation because that is how the
+evaluation order works, so an if expression will look like this:
+
+    a b condition if
+
+When `condition` is "true", we want this program to reduce to a. When it is
+"false", we want it to reduce to b.
+
+To achieve this, we must pick suitable representations for `true`, `false` and
+`if`. Here is one such way:
+
+    true  = [ pop ]
+    false = [ swap pop ]
+	if    = eval
+
+A problem with this representation is that a and b must already be evaluated. We
+avoid this by wrapping `a` and `b` with brackets, and make it so `if` removes
+the brackets.
+
+    [ a ] [ b ] condition if
+
+where
+	true  = [ pop ]
+	false = [ swap pop ]
+	if    = eval eval
+
+## Pairs
+
+We want to define `pair`, `fst` and `snd` such that:
+
+	a b pair fst -> a
+	a b pair snd -> b
+
+We can represent the pair (a, b) with a program that, when executed, places a
+and b on the stack.
+
+    pair = quote swap quote swap concat
+
+Let's see a step-by-step rewrite:
+
+    [ P ] [ Q ] pair
+    [ P ] [ Q ] quote swap quote swap concat
+    [ P ] [ [ Q ] ] swap quote swap concat
+    [ [ Q ] ] [ P ] quote swap concat
+    [ [ Q ] ] [ [ P ] ] swap concat
+    [ [ P ] ] [ [ Q ] ] concat
+    [ [ P ] [ Q ] ]
+
+Then, to get each element we put the elements on the stack and pop the one we
+don't want.
+
+    first  = eval pop
+	second = eval swap pop
+
+Step-by-step:
+
+    [ [ P ] [ Q ] ] first
+    [ [ P ] [ Q ] ] eval pop
+    [ P ] [ Q ] pop
+    [ P ]
+
+## Lists
+
+> TODO: I haven't figured this one out yet... Maybe use pairs??? In applicative
+> notation:
+>
+>     cons x xs = (true, (x, xs))
+>     nil       = (false, false)
+>
+> In Joy notation:
+>
+>     cons = pair true swap pair
+>     nil  = false false pair
+>
+> Then how to do folds?
