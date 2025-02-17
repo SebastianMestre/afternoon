@@ -1,0 +1,16 @@
+true [ pop ]
+false [ swap pop ]
+if eval eval
+make-pair quote swap quote swap concat
+first eval pop
+second eval swap pop
+rot quote swap quote swap concat swap quote concat eval
+over swap dup rot rot
+nil [ swap pop ]
+cons quote swap quote swap concat [ sink4 rot dup sink4 eval swap eval ] concat
+fold rot eval
+list-concat [ cons ] swap fold
+zero nil
+succ [ ] cons
+add list-concat
+sink4 quote rot rot make-pair rot quote swap concat concat eval
