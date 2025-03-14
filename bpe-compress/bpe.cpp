@@ -58,9 +58,6 @@ int main() {
 		int new_symbol = counter++;
 		mapping[most_common.second] = new_symbol;
 
-		vector<int> new_data;
-		new_data.reserve(data.size());
-
 		int prev = -1;
 		int prev_pos = -1;
 		for (int i = 0; i < int(data.size()); ++i) {
@@ -68,11 +65,11 @@ int main() {
 			if (x == -1) continue;
 			if (prev != -1) {
 				if (make_pair(prev, x) == most_common.second) {
-					new_data.push_back(new_symbol);
+					data[prev_pos] = new_symbol;
+					data[i] = -1;
 					prev = -1;
 					prev_pos = -1;
 				} else {
-					new_data.push_back(prev);
 					prev = x;
 					prev_pos = i;
 				}
@@ -82,11 +79,6 @@ int main() {
 			}
 		}
 
-		if (prev != -1) {
-			new_data.push_back(prev);
-		}
-
-		data = move(new_data);
 	}
 
 	std::cout << mapping.size() << "\n";
