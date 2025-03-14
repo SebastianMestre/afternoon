@@ -53,7 +53,6 @@ int main() {
 		}
 	}
 
-	int iter = 0;
 	while (true) {
 
 		pair<int, pair<int,int>> most_common = {-1, {0, 0}};
@@ -68,51 +67,41 @@ int main() {
 		int new_symbol = counter++;
 		mapping[most_common.second] = new_symbol;
 
-		int prev = -1;
-		int prev_pos = -1;
-		for (int i = 0; i < int(data.size()); ++i) {
+		auto find_next = [&](int i) {
+			for (++i; i < data.size(); ++i) {
+				if (data[i] != -1) {
+					return i;
+				}
+			}
+			return -1;
+		};
+
+		auto find_prev = [&](int i) {
+			for (--i; i >= 0; --i) {
+				if (data[i] != -1) {
+					return i;
+				}
+			}
+			return -1;
+		};
+
+		for (int prev_pos : histogram[most_common.second]) {
+			int prev = data[prev_pos];
+			if (prev == -1) continue;
+			int i = find_next(prev_pos);
+			if (i == -1) continue;
 			int x = data[i];
 			if (x == -1) continue;
-			if (prev != -1) {
-				if (make_pair(prev, x) == most_common.second) {
+			assert(make_pair(prev, x) == most_common.second);
 
-					auto find_next = [&](int i) {
-						for (++i; i < data.size(); ++i) {
-							if (data[i] != -1) {
-								return i;
-							}
-						}
-						return -1;
-					};
-
-					auto find_prev = [&](int i) {
-						for (--i; i >= 0; --i) {
-							if (data[i] != -1) {
-								return i;
-							}
-						}
-						return -1;
-					};
-
-					int pp = find_prev(prev_pos);
-					int nn = find_next(i);
-					if (pp != -1) decrease(data[pp], prev, pp);
-					if (nn != -1) decrease(x,    data[nn], i);
-					data[prev_pos] = new_symbol;
-					data[i] = -1;
-					if (pp != -1) increase(data[pp], new_symbol, pp);
-					if (nn != -1) increase(new_symbol, data[nn], prev_pos);
-
-					prev = -1;
-					prev_pos = -1;
-				} else {
-					prev = x;
-					prev_pos = i;
-				}
-			} else {
-				prev = x;
-				prev_pos = i;
-			}
+			int pp = find_prev(prev_pos);
+			int nn = find_next(i);
+			if (pp != -1) decrease(data[pp], prev, pp);
+			if (nn != -1) decrease(x,    data[nn], i);
+			data[prev_pos] = new_symbol;
+			data[i] = -1;
+			if (pp != -1) increase(data[pp], new_symbol, pp);
+			if (nn != -1) increase(new_symbol, data[nn], prev_pos);
 		}
 
 		histogram[most_common.second].clear();
