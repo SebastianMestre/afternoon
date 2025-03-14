@@ -28,23 +28,31 @@ int main() {
 	int counter = 256;
 	map<pair<int,int>, int> mapping;
 
+	map<pair<int,int>, int> histogram;
+
+	auto increase = [&](int x, int y) {
+		histogram[{x, y}] += 1;
+	};
+	auto decrease = [&](int x, int y) {
+		histogram[{x, y}] -= 1;
+	};
+
+	{
+		int prev = -1;
+		int prev_pos = -1;
+		for (int i = 0; i < int(data.size()); ++i) {
+			int x = data[i];
+			if (x == -1) continue;
+			if (prev != -1) {
+				increase(prev, x);
+			}
+			prev = x;
+			prev_pos = -1;
+		}
+	}
+
 	int iter = 0;
 	while (true) {
-		std::cerr << "START ITER " << iter++ << "\n";
-
-		map<pair<int,int>, int> histogram;
-
-		{
-			int prev = -1;
-			for (int i = 0; i < int(data.size()); ++i) {
-				int x = data[i];
-				if (x == -1) continue;
-				if (prev != -1) {
-					histogram[{prev, data[i]}] += 1;
-				}
-				prev = x;
-			}
-		}
 
 		pair<int, pair<int,int>> most_common = {-1, {0, 0}};
 		for (auto kv : histogram) {
@@ -65,7 +73,35 @@ int main() {
 			if (x == -1) continue;
 			if (prev != -1) {
 				if (make_pair(prev, x) == most_common.second) {
+
+					auto find_next = [&](int i) {
+						for (++i; i < data.size(); ++i) {
+							if (data[i] != -1) {
+								return i;
+							}
+						}
+						return -1;
+					};
+
+					auto find_prev = [&](int i) {
+						for (--i; i >= 0; --i) {
+							if (data[i] != -1) {
+								return i;
+							}
+						}
+						return -1;
+					};
+
+
+					decrease(prev, x);
+					int pp = find_prev(prev_pos);
+					int nn = find_next(i);
+					if (pp != -1) decrease(data[pp], prev);
+					if (nn != -1) decrease(x,    data[nn]);
 					data[prev_pos] = new_symbol;
+					if (pp != -1) increase(data[pp], new_symbol);
+					if (nn != -1) increase(new_symbol, data[nn]);
+
 					data[i] = -1;
 					prev = -1;
 					prev_pos = -1;
