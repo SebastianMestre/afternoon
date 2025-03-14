@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <utility>
+#include <algorithm>
 
 #include <cmath>
 
@@ -33,8 +34,16 @@ int main() {
 
 		map<pair<int,int>, int> histogram;
 
-		for (int i = 1; i < data.size(); ++i) {
-			histogram[{data[i-1], data[i]}] += 1;
+		{
+			int prev = -1;
+			for (int i = 0; i < int(data.size()); ++i) {
+				int x = data[i];
+				if (x == -1) continue;
+				if (prev != -1) {
+					histogram[{prev, data[i]}] += 1;
+				}
+				prev = x;
+			}
 		}
 
 		pair<int, pair<int,int>> most_common = {-1, {0, 0}};
@@ -53,17 +62,23 @@ int main() {
 		new_data.reserve(data.size());
 
 		int prev = -1;
-		for (int x : data) {
+		int prev_pos = -1;
+		for (int i = 0; i < int(data.size()); ++i) {
+			int x = data[i];
+			if (x == -1) continue;
 			if (prev != -1) {
 				if (make_pair(prev, x) == most_common.second) {
 					new_data.push_back(new_symbol);
 					prev = -1;
+					prev_pos = -1;
 				} else {
 					new_data.push_back(prev);
 					prev = x;
+					prev_pos = i;
 				}
 			} else {
 				prev = x;
+				prev_pos = i;
 			}
 		}
 
@@ -81,13 +96,14 @@ int main() {
 
 	auto sep = "";
 	for (int x : data) {
+		if (x == -1) continue;
 		std::cout << sep << x;
 		sep = " ";
 	}
 	std::cout << "\n";
 
 	int const distinct_token_count = 256 + int(mapping.size());
-	int const token_count = int(mapping.size()) * 2 + int(data.size());
+	int const token_count = int(mapping.size()) * 2 + int(data.size()) - int(count(begin(data), end(data), -1));
 
 	double const bits_per_token = log2(distinct_token_count);
 	int const full_bits_per_token = int(ceil(bits_per_token));
