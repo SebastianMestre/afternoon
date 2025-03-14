@@ -3,9 +3,11 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 #include <utility>
 #include <algorithm>
 
+#include <cassert>
 #include <cmath>
 
 using namespace std;
@@ -28,13 +30,13 @@ int main() {
 	int counter = 256;
 	map<pair<int,int>, int> mapping;
 
-	map<pair<int,int>, int> histogram;
+	map<pair<int,int>, set<int>> histogram;
 
-	auto increase = [&](int x, int y) {
-		histogram[{x, y}] += 1;
+	auto increase = [&](int x, int y, int pos) {
+		histogram[{x, y}].insert(pos);
 	};
-	auto decrease = [&](int x, int y) {
-		histogram[{x, y}] -= 1;
+	auto decrease = [&](int x, int y, int pos) {
+		histogram[{x, y}].erase(pos);
 	};
 
 	{
@@ -44,10 +46,10 @@ int main() {
 			int x = data[i];
 			if (x == -1) continue;
 			if (prev != -1) {
-				increase(prev, x);
+				increase(prev, x, prev_pos);
 			}
 			prev = x;
-			prev_pos = -1;
+			prev_pos = i;
 		}
 	}
 
@@ -55,8 +57,8 @@ int main() {
 	while (true) {
 
 		pair<int, pair<int,int>> most_common = {-1, {0, 0}};
-		for (auto kv : histogram) {
-			most_common = max(most_common, {kv.second, kv.first});
+		for (auto const& kv : histogram) {
+			most_common = max(most_common, {int(kv.second.size()), kv.first});
 		}
 
 		if (most_common.first < 2) {
@@ -92,17 +94,15 @@ int main() {
 						return -1;
 					};
 
-
-					decrease(prev, x);
 					int pp = find_prev(prev_pos);
 					int nn = find_next(i);
-					if (pp != -1) decrease(data[pp], prev);
-					if (nn != -1) decrease(x,    data[nn]);
+					if (pp != -1) decrease(data[pp], prev, pp);
+					if (nn != -1) decrease(x,    data[nn], i);
 					data[prev_pos] = new_symbol;
-					if (pp != -1) increase(data[pp], new_symbol);
-					if (nn != -1) increase(new_symbol, data[nn]);
-
 					data[i] = -1;
+					if (pp != -1) increase(data[pp], new_symbol, pp);
+					if (nn != -1) increase(new_symbol, data[nn], prev_pos);
+
 					prev = -1;
 					prev_pos = -1;
 				} else {
@@ -114,6 +114,8 @@ int main() {
 				prev_pos = i;
 			}
 		}
+
+		histogram[most_common.second].clear();
 
 	}
 
