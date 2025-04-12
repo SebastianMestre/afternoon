@@ -1,3 +1,4 @@
+# Inline Caches
 
 Hidden classes is a mechanism by which Javascript interpreters optimize property
 access on objects.
@@ -14,9 +15,11 @@ objects with identical sets of keys.
 
 We call such a mapping a "shape" or a "hidden class".
 
-We still haven't solved the time problem. To do this, we observe that on a given
-code location that performs field access, it will usually always run on objects
-with the same hidden class.
+This will likely be faster due to a smaller memory footprint (and fewer
+allocations if we were using a node-based hash map) but we still have a lot of
+expensive work on each lookup. To address this, we observe that on a given code
+location that performs field access, it will usually always run on objects with
+the same hidden class.
 
 To take advantage of this, we extend each such code location with an "inline
 cache", that remembers the field position for a given hidden class, and can be
@@ -27,7 +30,15 @@ hidden class.
 Since most field accesses should be cached, we can afford to represent shapes as
 linked lists instead of hash maps.
 
-Depending on the use case, we can observe some extreme speedups:
+## Performance
+
+I set up a really simple mirobenchmark.
+
+First, we create two objects with the same 20 keys each. Then we repeatedly
+replace the value assigned to the first key millions of times.
+
+This is an extreme worst case scenario for the "no cache" solution, so we can
+observe some extreme speedups:
 
 ```sh
 $ cc -O3 *.c -o hidden-class
