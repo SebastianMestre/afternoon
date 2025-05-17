@@ -14,6 +14,13 @@ const labelB = makeText(0, 0, 'B', labelStyle);
 
 updatePoly();
 
+for (let xx = -10; xx <= 10; ++xx) {
+	const gridline1 = makeLine(xx, -10, xx, 10, {'stroke-width': 0.1, stroke:'rgba(128,128,128,0.5)'})
+	const gridline2 = makeLine(-10, xx, 10, xx, {'stroke-width': 0.1, stroke:'rgba(128,128,128,0.5)'})
+	svg.appendChild(gridline1);
+	svg.appendChild(gridline2);
+}
+
 svg.appendChild(poly)
 makeDraggableVector(p1);
 makeDraggableVector(p2);
