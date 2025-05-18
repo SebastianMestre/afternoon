@@ -37,7 +37,7 @@ async function sort(arr, l, r, cmp) {
 					let temp = arr[j-gap];
 					arr[j-gap] = arr[j];
 					arr[j] = temp;
-					await sleep(0.1);
+					await sleep(0.05);
 					updateSvg();
 				} else {
 					break;
@@ -64,9 +64,6 @@ function ccw(o, a, b) {
 }
 
 async function chull() {
-
-
-	const o = ps[0];
 
 	await sort(ps, 0, ps.length, (a, b) => a.x - b.x);
 
@@ -95,7 +92,7 @@ async function chull() {
 				ps.splice(i-1, 1);
 				i--;
 				j--;
-				await sleep(0.5);
+				await sleep(3);
 				updateSvg();
 			} else {
 				break;

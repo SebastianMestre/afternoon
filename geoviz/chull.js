@@ -37,7 +37,7 @@ async function sort(arr, l, r, cmp) {
 					let temp = arr[j-gap];
 					arr[j-gap] = arr[j];
 					arr[j] = temp;
-					await sleep(0.1);
+					await sleep(0.05);
 					updateSvg();
 				} else {
 					break;
@@ -71,12 +71,10 @@ async function chull() {
 			ps[i] = ps[0];
 			ps[0] = temp;
 
-			await sleep(0.1);
+			await sleep(0.05);
 			updateSvg();
 		}
 	}
-
-	await sleep(5);
 
 	const o = ps[0];
 
