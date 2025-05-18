@@ -51,9 +51,9 @@ function makeLine(x1, y1, x2, y2, options = {}) {
 	return line;
 }
 
-function setPoints(polygon, points) {
+function setPoints(poly, points) {
 	points = points.map(p => [p.x, p.y].join(',')).join(' ');
-	setAttributes(polygon, {points});
+	setAttributes(poly, {points});
 }
 
 function makePolygon(points, options = {}) {
@@ -61,6 +61,13 @@ function makePolygon(points, options = {}) {
 	setPoints(polygon, points);
 	setAttributes(polygon, options);
 	return polygon;
+}
+
+function makePolyline(points, options = {}) {
+	const polyline = document.createElementNS(svgNs, 'polyline');
+	setPoints(polyline, points);
+	setAttributes(polyline, options);
+	return polyline;
 }
 
 function makeText(x, y, textContent, options = {}) {
