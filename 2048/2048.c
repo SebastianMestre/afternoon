@@ -114,13 +114,15 @@ board_t with_shift_left_tbl(board_t b) {
 }
 
 board_t with_shift_tbl(board_t b, int dir) {
+	assert(0 <= dir && dir <= 4);
+
 	for (int k = 0; k < dir; ++k) {
 		b = rot_cw(b);
 	}
 
 	b = with_shift_left_tbl(b);
 
-	for (int k = 0; k < 4-dir; ++k) {
+	for (int k = 0; k < (3&(4-dir)); ++k) {
 		b = rot_cw(b);
 	}
 
