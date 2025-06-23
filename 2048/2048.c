@@ -52,11 +52,7 @@ board_t rot_cw(board_t b) {
 	return r;
 }
 
-board_t with_shift(board_t b, int dir) {
-	for (int k = 0; k < dir; ++k) {
-		b = rot_cw(b);
-	}
-
+board_t with_shift_left(board_t b) {
 	board_t fixed = 0;
 	for (int i = 0; i < 4; ++i) {
 
@@ -85,6 +81,16 @@ board_t with_shift(board_t b, int dir) {
 
 	}
 
+	return b;
+}
+
+board_t with_shift(board_t b, int dir) {
+	for (int k = 0; k < dir; ++k) {
+		b = rot_cw(b);
+	}
+
+	b = with_shift_left(b);
+
 	for (int k = 0; k < 4-dir; ++k) {
 		b = rot_cw(b);
 	}
@@ -92,8 +98,34 @@ board_t with_shift(board_t b, int dir) {
 	return b;
 }
 
-// board_t with_shift_table(board_t b, int dir) {
-// }
+uint16_t shift_table[1u << 16u];
+void build_shift_table() {
+	for (board_t b = 0; b < (1u << 16u); ++b) {
+		shift_table[(uint16_t)b] = with_shift_left(b);
+	}
+}
+
+board_t with_shift_left_tbl(board_t b) {
+	board_t res = 0;
+	for (unsigned i = 0; i < 64; i += 16) {
+		res |= (board_t)shift_table[(b >> i) & 0xffffu] << i;
+	}
+	return res;
+}
+
+board_t with_shift_tbl(board_t b, int dir) {
+	for (int k = 0; k < dir; ++k) {
+		b = rot_cw(b);
+	}
+
+	b = with_shift_left_tbl(b);
+
+	for (int k = 0; k < 4-dir; ++k) {
+		b = rot_cw(b);
+	}
+
+	return b;
+}
 
 int pos = 0;
 uint64_t states = 0;
@@ -116,7 +148,7 @@ int iddfs(board_t b, int depth) {
 			for (enum value v = V4; v >= V4; --v) {
 				board_t b_ = with(b, i, j, v);
 				for (int dir = 0; dir < 4; ++dir) {
-					board_t b__ = with_shift(b_, dir);
+					board_t b__ = with_shift_tbl(b_, dir);
 					if (b__ == b_) continue;
 					if (iddfs(b__, depth-1)) return 1;
 				}
@@ -144,6 +176,8 @@ void print_board(board_t b) {
 }
 
 int main() {
+	build_shift_table();
+
 	int depth_limit;
 	scanf("%d", &depth_limit);
 	if (iddfs(0, depth_limit)) {

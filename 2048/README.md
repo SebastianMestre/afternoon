@@ -7,18 +7,18 @@ Aims to answer the question:
 
 Just a brute force DFS written in C and a runner program in bash.
 
-The C program explores about 11.2 million boards per second on my machine.
+The C program explores about 16.5 million boards per second on my machine.
 
 Theoretical lower bound: 512, because we need the tiles to add up to 2048, and
 the highest tile that spawns naturally has a value of 4, meaning 2048/4 is the
 least possible number of spawns to reach 2048.
 
-Best lower bound found so far 550 steps. With the final board being this:
+Best upper bound found so far is 525 steps. With the final board being this:
 
 ```
-    4|    8| 2048|    8
-   64|     |   16|   32
-     |     |     |   16
-     |     |     |
+[    4|     |     |     ]
+[   16|     |     |     ]
+[    8|     |     |     ]
+[    4|   16| 2048|     ]
 ```
 
