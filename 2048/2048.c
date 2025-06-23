@@ -59,29 +59,30 @@ board_t with_shift(board_t b, int dir) {
 
 	board_t fixed = 0;
 	for (int i = 0; i < 4; ++i) {
+
 		for (int j = 0; j < 4; ++j) {
-			int ii = i;
+			int jj = j;
 			while (1) {
-				if (ii == 0) break;
-				enum value u = get(&b, ii, j);
+				if (jj == 0) break;
+				enum value u = get(&b, i, jj);
 				if (u == VEMPTY) break;
-				enum value v = get(&b, ii - 1, j);
+				enum value v = get(&b, i, jj - 1);
 				if (v == VEMPTY) {
-					set(&b, ii-1, j, u);
-					set(&b, ii, j, VEMPTY);
-					ii = ii-1;
+					set(&b, i, jj-1, u);
+					set(&b, i, jj, VEMPTY);
+					jj = jj-1;
 					continue;
-				} else if (v == u && get(&fixed, ii-1, j) == VEMPTY) {
-					assert(u < V32768);
-					set(&b, ii-1, j, u+1);
-					set(&b, ii, j, VEMPTY);
-					set(&fixed, ii-1, j, V2);
+				} else if (v == u && get(&fixed, i, jj-1) == VEMPTY) {
+					set(&b, i, jj-1, u+1);
+					set(&b, i, jj, VEMPTY);
+					set(&fixed, i, jj-1, V2);
 					break;
 				} else {
 					break;
 				}
 			}
 		}
+
 	}
 
 	for (int k = 0; k < 4-dir; ++k) {
