@@ -141,8 +141,8 @@ int iddfs(board_t b, int depth) {
 
 	// print_board(b); printf("\n");
 
-	if (depth == 0) return (pos--, 0);
 	if (is_over(b)) return 1;
+	if (depth == 0) return (pos--, 0);
 
 	for (int i = 0; i < 4; ++i) {
 		for (int j = 0; j < 4; ++j) {
@@ -187,7 +187,7 @@ int main() {
 			print_board(steps[i]);
 			printf("\n");
 		}
-		printf("FOUND in %d steps\n", pos);
+		printf("FOUND in %d steps\n", pos-1);
 		printf("SEARCHED %lu states\n", states);
 		return 0;
 	} else {
