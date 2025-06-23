@@ -131,7 +131,7 @@ board_t with_shift_tbl(board_t b, int dir) {
 
 int pos = 0;
 uint64_t states = 0;
-board_t steps[10000];
+board_t steps[600];
 
 // search for game of 2048 with <= depth
 int iddfs(board_t b, int depth) {
@@ -189,5 +189,8 @@ int main() {
 		}
 		printf("FOUND in %d steps\n", pos);
 		printf("SEARCHED %lu states\n", states);
+		return 0;
+	} else {
+		return 1;
 	}
 }
