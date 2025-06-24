@@ -31,3 +31,22 @@ billion states in 298.47s (just under 5 minutes). The final board is:
 > In the theoretical lower bound, the remaining tiles (ignoring the 2048-tile)
 > would add up to `36 = 9*4`, and in this case the remaining tiles add up to
 > `44 = 11*4`.
+
+## Update
+
+Theoretical lower bound achieved!
+
+After parallelizing the search, we found the following. Oddly enough, the search
+for a game of length 522 did not finish, but we got this:
+
+```
+     |     |     |
+     |     |     |    8
+     |     |   16| 2048
+    4|     |    4|    4
+
+FOUND in 521 steps
+SEARCHED 287535662248 states
+5544.50user 0.10system 1:32:26elapsed 99%CPU (0avgtext+0avgdata 1688maxresident)k
+0inputs+0outputs (0major+124minor)pagefaults 0swaps
+```
