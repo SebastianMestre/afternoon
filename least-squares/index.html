@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Basic HTML Template</title>
+    <style>
+        :root {
+            font-size: 12pt;
+        }
+        html {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: start;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            box-sizing: content-box;
+            width: 800px;
+            border: 1px solid black;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+        }
+        canvas {
+            border: 1px solid #aaa;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+        .xrange-controls {
+            margin-bottom: 1.62rem;
+        }
+        .inputs {
+            margin-bottom: 1.62rem;
+        }
+        .inputs textarea {
+            min-height: 10rem;
+        }
+        .presets ul {
+            display: flex;
+            padding: 0;
+            list-style: none;
+            gap: 1rem;
+        }
+        .presets ul li {
+            border: 1px solid #aaa;
+            padding: 1rem;
+            padding-top: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Iterative least-squares curve fitting</h1>
+    <canvas id="canvas" width="800" height="600"></canvas>
+<div class="xrange-controls">
+    <label>x0</label>
+    <input type="number" id="x0-input" value="-0.5">
+    <label>x1</label>
+    <input type="number" id="x1-input" value="1.5">
+</div>
+<div class="inputs">
+
+    <textarea id="points-input">
+0 1
+0.3 0.4
+1 1
+0.6 2
+0.25 1
+0.8 1.5</textarea>
+    <textarea id="primitive-input">
+x^0*(1-x)^4
+x^1*(1-x)^3*4
+x^2*(1-x)^2*6
+x^3*(1-x)^1*4
+x^4*(1-x)^0</textarea>
+</div>
+<div class="loss">loss: <span id="loss">0</span></div>
+<div class="presets">
+    <h3>
+        presets
+    </h3>
+    <ul>
+        <li> Canonical
+            <pre>
+1
+x
+x^2
+x^3
+x^4</pre>
+        </li>
+        <li> Bernstein (5 terms)
+            <pre>
+x^0*(1-x)^4
+x^1*(1-x)^3*4
+x^2*(1-x)^2*6
+x^3*(1-x)^1*4
+x^4*(1-x)^0</pre>
+        </li>
+        <li> Bernstein (9 terms)
+            <pre>
+x^0*(1-x)^8
+x^1*(1-x)^7*8
+x^2*(1-x)^6*28
+x^3*(1-x)^5*56
+x^4*(1-x)^4*70
+x^5*(1-x)^3*56
+x^6*(1-x)^2*28
+x^7*(1-x)^1*8
+x^8*(1-x)^0</pre>
+        </li>
+    </ul>
+</div>
+</body>
+<script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const pointsEmt = document.getElementById('points-input');
+    const primitiveEmt = document.getElementById('primitive-input');
+    const x0Emt = document.getElementById('x0-input');
+    const x1Emt = document.getElementById('x1-input');
+    const lossEmt = document.getElementById('loss');
+
+    let points = null;
+    let primitives = null;
+    let x0 = null;
+    let x1 = null;
+    let coefficients = null;
+    let fullFunction = null;
+
+    function updateX0() {
+        x0 = Number(x0Emt.value);
+    }
+
+    function updateX1() {
+        x1 = Number(x1Emt.value);
+    }
+
+    function updatePoints() {
+        points = pointsEmt.value.trim().split('\n').map(point => point.trim().split(' ').map(Number));
+        console.log(points);
+    }
+
+    function updatePrimitives() {
+        primitives = primitiveEmt.value.trim().split('\n').map(primitive => parseFormula(primitive.trim()));
+        coefficients = primitives.map(primitive => Math.random() * 2 - 1);
+        fullFunction = makeLinearCombination(coefficients, primitives);
+        console.log(primitives);
+        console.log(fullFunction);
+    }
+
+    updateX0();
+    updateX1();
+    updatePoints();
+    updatePrimitives();
+
+    pointsEmt.addEventListener('input', () => {
+        updatePoints();
+        plot();
+    });
+
+    primitiveEmt.addEventListener('input', () => {
+        updatePrimitives();
+        plot();
+    });
+
+    x0Emt.addEventListener('input', () => {
+        updateX0();
+        plot();
+    });
+
+    x1Emt.addEventListener('input', () => {
+        updateX1();
+        plot();
+    });
+
+    const addFn = (a, b) => a + b;
+    const subFn = (a, b) => a - b;
+    const mulFn = (a, b) => a * b;
+    const divFn = (a, b) => a / b;
+    const powFn = (a, b) => Math.pow(a, b);
+
+    const fnMap = {
+        '+': addFn,
+        '-': subFn,
+        '*': mulFn,
+        '/': divFn,
+        '^': powFn,
+    };
+
+    function parseFormula(formula) {
+        let cursor = 0;
+
+        function skipWhitespace() {
+            while (peek() === ' ' || peek() === '\t' || peek() === '\n') {
+                cursor++;
+            }
+        }
+
+        function match(char) {
+            if (peek() === char) {
+                return true;
+            }
+            return false;
+        }
+
+        function peek() {
+            return cursor < formula.length ? formula[cursor] : null;
+        }
+
+        function consume(char) {
+            if (match(char)) {
+                cursor++;
+                return true;
+            }
+            return false;
+        }
+
+        const digits = "0123456789";
+        const alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+        function pTerm() {
+            skipWhitespace();
+            if (consume('(')) {
+                const expr = pExpr();
+                skipWhitespace();
+                if (consume(')')) {
+                    return expr;
+                }
+                fail('Expected )');
+            } else if (digits.includes(peek())) {
+                return parseNumber();
+            } else if (alpha.includes(peek())) {
+                return parseVariable();
+            } else {
+                fail('Expected number, variable, or (');
+            }
+        }
+        
+        function parseNumber() {
+            let number = '';
+            while (digits.includes(peek())) {
+                number += peek();
+                cursor++;
+            }
+            if (consume('.')) {
+                number += '.';
+                while (digits.includes(peek())) {
+                    number += peek();
+                    cursor++;
+                }
+            }
+            return Number(number);
+        }
+
+        function parseVariable() {
+            let variable = '';
+            while (alpha.includes(peek())) {
+                variable += peek();
+                cursor++;
+            }
+            return variable;
+        }
+
+        function getPrecedence(op) {
+            if (op === '+') return [10, 11];
+            if (op === '-') return [10, 11];
+            if (op === '*') return [20, 21];
+            if (op === '/') return [20, 21];
+            if (op === '^') return [31, 30]; // NOTE: x^y^z is parsed as x^(y^z)
+            throw new Error(`Unknown operator: '${op}'`);
+        }
+
+        function pExpr(prec = 0) {
+            let lhs = pTerm();
+
+            while (true) {
+                skipWhitespace();
+                const op = peek();
+
+                if (op === null || op === ')') {
+                    break;
+                }
+
+                if (!"+-*/^".includes(op)) {
+                    fail(`Expected operator but got '${op}'`);
+                }
+
+                const [lprec, rprec] = getPrecedence(op);
+
+                if (lprec < prec) {
+                    break;
+                }
+
+                cursor++;
+
+                const rhs = pExpr(rprec);
+                lhs = [op, lhs, rhs];
+            }
+
+            return lhs;
+        }
+
+        function fail(message) {
+            const l = Math.max(0, cursor - 10);
+            const r = Math.min(formula.length, cursor + 10);
+            const context = formula.slice(Math.max(0, cursor - 10), cursor + 10);
+            const arrow = ' '.repeat(cursor - l) + '^';
+            throw new Error(`${message} at position ${cursor}
+${context}
+${arrow}`);
+        }
+
+        return pExpr();
+    }
+
+    // replace the operators with the functions they represent
+    function replaceOperators(expr) {
+        if (typeof expr === 'number') {
+            return expr;
+        }
+        if (typeof expr === 'string') {
+            return expr;
+        }
+        return [fnMap[expr[0]], replaceOperators(expr[1]), replaceOperators(expr[2])];
+    }
+
+    // evaluate the expression after replacing the operators
+    function evaluate(expr, variables) {
+        if (typeof expr === 'number') {
+            return expr;
+        }
+        if (typeof expr === 'string') {
+            return variables[expr];
+        }
+        return expr[0](evaluate(expr[1], variables), evaluate(expr[2], variables));
+    }
+
+    function makeLinearCombination(coefficients, primitives) {
+        return primitives
+            .map((primitive, index) => ['*', coefficients[index], primitive])
+            .reduce((a, b) => ['+', a, b]);
+    }
+    
+    function test(formula) {
+        function serialize(expr) {
+            if (typeof expr === 'number') {
+                return expr.toString();
+            }
+            if (typeof expr === 'string') {
+                return expr;
+            }
+            return `(${expr[0]} ${serialize(expr[1])} ${serialize(expr[2])})`;
+        }
+        console.log(`{${formula}} -> ${serialize(parseFormula(formula))}`);
+    }
+
+    function plot() {
+        const sampleCount = 100;
+        const samplePoints = [];
+
+        function pointTransform(x, y) {
+            const x_ = (x - x0) / (x1 - x0) * canvas.width;
+            const y_ = canvas.height - (y - y0) / (y1 - y0) * canvas.height;
+            return [x_, y_];
+        }
+
+        for (const primitive of primitives) {
+            for (let i = 0; i < sampleCount; i++) {
+                const x = x0 + (x1 - x0) * i / (sampleCount - 1);
+                const y = evaluate(replaceOperators(primitive), { x });
+                samplePoints.push([x, y]);
+            }
+        }
+
+        let y0 = Infinity;
+        let y1 = -Infinity;
+        for (const [x, y] of samplePoints) {
+            if (y < y0) y0 = y;
+            if (y > y1) y1 = y;
+        }
+
+        let ySpan = y1 - y0;
+        y0 -= ySpan * 0.1;
+        y1 += ySpan * 0.1;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        for (const [x, y] of samplePoints) {
+            const x_ = (x - x0) / (x1 - x0) * canvas.width;
+            const y_ = canvas.height - (y - y0) / (y1 - y0) * canvas.height;
+            ctx.fillRect(x_-1, y_-1, 2, 2);
+        }
+
+
+        
+        let fullFunction_ = replaceOperators(fullFunction);
+        ctx.beginPath();
+        const [x0_, y0_] = pointTransform(x0, evaluate(fullFunction_, { x: x0 }));
+        ctx.moveTo(x0_, y0_);
+        for (let i = 1; i < sampleCount; i++) {
+            const x = x0 + (x1 - x0) * i / (sampleCount - 1);
+            const y = evaluate(fullFunction_, { x });
+            const [x_, y_] = pointTransform(x, y);
+            ctx.lineTo(x_, y_);
+        }
+        ctx.stroke();
+
+        for (const [x, y] of points) {
+            const [x_, y_] = pointTransform(x, y);
+            ctx.beginPath();
+            ctx.arc(x_, y_, 5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+    }
+
+    function evalLoss(fn) {
+        let loss = 0;
+        for (const [x, y] of points) {
+            const fy = evaluate(fn, { x });
+            loss += (y - fy) ** 2;
+        }
+        return loss;
+    }
+
+    function train() {
+        let loss = evalLoss(replaceOperators(fullFunction));
+        const newCoefficients = coefficients.map(coefficient => coefficient + (Math.random() + Math.random() - Math.random() - Math.random()) * 0.01);
+        const newFullFunction = makeLinearCombination(newCoefficients, primitives);
+        const newLoss = evalLoss(replaceOperators(newFullFunction));
+        if (newLoss < loss) {
+            coefficients = newCoefficients;
+            fullFunction = newFullFunction;
+            lossEmt.textContent = newLoss.toFixed(2);
+        }
+    }
+
+    window.setInterval(() => {
+        for (let i = 0; i < 100; i++) {
+            train();
+        }
+        plot();
+    }, 30);
+
+    plot();
+</script>
+</html>
