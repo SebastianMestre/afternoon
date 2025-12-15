@@ -1,49 +1,96 @@
-<canvas width=800 height=400 id=cnv style="border: 1px solid black"></canvas>
-<br>
-<label>x1</label>
-<input type=range value=0.20 step=0.01 min=0 max=1 id=inpx1>
-<label>y1</label>
-<input type=range value=0.20 step=0.01 min=0 max=1 id=inpy1>
-<br>
-<label>x2</label>
-<input type=range value=0.40 step=0.01 min=0 max=1 id=inpx2>
-<label>y2</label>
-<input type=range value=0.50 step=0.01 min=0 max=1 id=inpy2>
-<br>
-<label>x3</label>
-<input type=range value=0.60 step=0.01 min=0 max=1 id=inpx3>
-<label>y3</label>
-<input type=range value=0.10 step=0.01 min=0 max=1 id=inpy3>
-<br>
-<label>x4</label>
-<input type=range value=0.80 step=0.01 min=0 max=1 id=inpx4>
-<label>y4</label>
-<input type=range value=0.10 step=0.01 min=0 max=1 id=inpy4>
-<p>
-<h3>Explanation</h3>
-Take one of the lightly coloured polynomials, call it Pk(x). This polynomial
-equals the y coordinate of the point k at the x coordinate of the point k, and
-it equals zero at the x coordinate of any other marked point.
-</p>
-<p>
-It is not hard to show that P(x), the sum of these polynomials, passes through
-every marked point.
-</p>
-<p>
-Constructing Pk(x) is achieved by first multiplying the degree-1 polynomials with
-roots at the x coordinates of the marked points (excluding point k), then scaling
-the result so that it equals the y coordinate of the point k at the x coordinate
-of point k.
-</p>
-<p>
-Such a construction is unique (assuming multiplicity 1), and so is the sum of
-these polynomials.
-</p>
-<p>
-<h3>Observations</h3>
-If there are n points, then each Pk(x) is a polynomial of degree n-1. It follows
-that P(x) is also a polynomial of degree n-1.
-</p>
+<style>
+:root {
+	font-size: 12pt;
+}
+html {
+	display: flex;
+	justify-content: center;
+}
+body {
+	max-width: 800px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+body section {
+	max-width: 60ch;
+}
+canvas {
+	border-radius: 4px;
+	border: 1px solid #aaa;
+	box-shadow: 0 0 10px 0 rgba(0,0,0,0.1);
+}
+.point-controls {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	grid-template-rows: 1fr 1fr;
+	gap: .5em;
+}
+.point-controls-container {
+	display: flex;
+	flex-direction: row;
+	gap: 1.5em;
+	margin-top: 1.5em;
+	margin-bottom: 3em;
+}
+</style>
+
+<canvas width=800 height=400 id=cnv></canvas>
+<div class="point-controls-container">
+<div class="point-controls">
+	<label>x1</label>
+	<input type=range value=0.20 step=0.01 min=0 max=1 id=inpx1>
+	<label>y1</label>
+	<input type=range value=0.20 step=0.01 min=0 max=1 id=inpy1>
+</div>
+<div class="point-controls">
+	<label>x2</label>
+	<input type=range value=0.40 step=0.01 min=0 max=1 id=inpx2>
+	<label>y2</label>
+	<input type=range value=0.50 step=0.01 min=0 max=1 id=inpy2>
+</div>
+<div class="point-controls">
+	<label>x3</label>
+	<input type=range value=0.60 step=0.01 min=0 max=1 id=inpx3>
+	<label>y3</label>
+	<input type=range value=0.10 step=0.01 min=0 max=1 id=inpy3>
+</div>
+<div class="point-controls">
+	<label>x4</label>
+	<input type=range value=0.80 step=0.01 min=0 max=1 id=inpx4>
+	<label>y4</label>
+	<input type=range value=0.10 step=0.01 min=0 max=1 id=inpy4>
+</div>
+</div>
+<section>
+	<h3>Explanation</h3>
+	<p>
+	Take one of the lightly coloured polynomials, call it Pk(x). This polynomial
+	equals the y coordinate of the point k at the x coordinate of the point k, and
+	it equals zero at the x coordinate of any other marked point.
+	</p>
+	<p>
+	It is not hard to show that P(x), the sum of these polynomials, passes through
+	every marked point.
+	</p>
+	<p>
+	Constructing Pk(x) is achieved by first multiplying the degree-1 polynomials with
+	roots at the x coordinates of the marked points (excluding point k), then scaling
+	the result so that it equals the y coordinate of the point k at the x coordinate
+	of point k.
+	</p>
+	<p>
+	Such a construction is unique (assuming multiplicity 1), and so is the sum of
+	these polynomials.
+	</p>
+</section>
+<section>
+	<h3>Observations</h3>
+	<p>
+	If there are n points, then each Pk(x) is a polynomial of degree n-1. It follows
+	that P(x) is also a polynomial of degree n-1.
+	</p>
+</section>
 <script>
 const ctx = cnv.getContext("2d");
 
