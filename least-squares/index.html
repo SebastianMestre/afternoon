@@ -4,8 +4,20 @@
     <meta charset="UTF-8">
     <title>Basic HTML Template</title>
     <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
         :root {
             font-size: 12pt;
+            font-family: sans-serif;
+            --margin-xxs: 0.25rem;
+            --margin-xs:  0.40rem;
+            --margin-s:   0.60rem;
+            --margin-m:   1.00rem;
+            --margin-l:   1.60rem;
+            --margin-xl:  2.60rem;
+            --margin-xxl: 4.25rem;
         }
         html {
             display: flex;
@@ -13,49 +25,83 @@
             align-items: center;
             justify-content: start;
             height: 100vh;
-            margin: 0;
-            padding: 0;
+            background-color: #c7c9d6;
         }
         body {
             box-sizing: content-box;
-            width: 800px;
+
+            background-color: #f5f5f5;
             border: 1px solid black;
-            padding: 20px;
+            border-radius: 5px;
+
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 0;
+
+            width: 800px;
+            padding: var(--margin-l);
+            margin: var(--margin-m);
+        }
+        body > h1 {
+            margin-bottom: var(--margin-l);
         }
         canvas {
             border: 1px solid #aaa;
             border-radius: 5px;
-            margin-bottom: 1rem;
+            margin-bottom: var(--margin-xs);
+            box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+        .loss {
+            margin-bottom: var(--margin-xs);
+        }
+        .coefficients {
+            margin-bottom: var(--margin-l);
         }
         .xrange-controls {
-            margin-bottom: 1.62rem;
+            margin-bottom: var(--margin-l);
         }
         .inputs {
-            margin-bottom: 1.62rem;
+            margin-bottom: var(--margin-l);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            width: 100%;
+            gap: var(--margin-m);
         }
-        .inputs textarea {
+        .inputs > div {
+            display: flex;
+            flex-direction: column;
+        }
+        .inputs > div > h2 {
+            text-align: center;
+            margin-bottom: var(--margin-xs);
+        }
+        .inputs > div > textarea {
             min-height: 10rem;
+            resize: vertical;
+        }
+        .presets > h3 {
+            margin-bottom: var(--margin-xs);
         }
         .presets ul {
             display: flex;
-            padding: 0;
+            flex-flow: row wrap;
+            justify-content: center;
             list-style: none;
-            gap: 1rem;
+            gap: var(--margin-m);
         }
         .presets ul li {
             border: 1px solid #aaa;
-            padding: 1rem;
-            padding-top: 0.75rem;
+            padding: var(--margin-m);
+            padding-top: var(--margin-s);
         }
     </style>
 </head>
 <body>
     <h1>Iterative least-squares curve fitting</h1>
     <canvas id="canvas" width="800" height="600"></canvas>
+    <div class="loss">Loss: <span id="loss">0</span></div>
+    <div class="coefficients">Coefficients: <span id="coefficients">0</span></div>
 <div class="xrange-controls">
     <label>x0</label>
     <input type="number" id="x0-input" value="-0.5">
@@ -63,22 +109,26 @@
     <input type="number" id="x1-input" value="1.5">
 </div>
 <div class="inputs">
-
-    <textarea id="points-input">
+<div>
+<h2>Points</h2>
+<textarea id="points-input">
 0 1
 0.3 0.4
 1 1
 0.6 2
 0.25 1
 0.8 1.5</textarea>
-    <textarea id="primitive-input">
+</div>
+<div>
+<h2>Primitives</h2>
+<textarea id="primitive-input">
 x^0*(1-x)^4
 x^1*(1-x)^3*4
 x^2*(1-x)^2*6
 x^3*(1-x)^1*4
 x^4*(1-x)^0</textarea>
 </div>
-<div class="loss">loss: <span id="loss">0</span></div>
+</div>
 <div class="presets">
     <h3>
         presets
@@ -112,18 +162,28 @@ x^6*(1-x)^2*28
 x^7*(1-x)^1*8
 x^8*(1-x)^0</pre>
         </li>
+        <li> Legendre (6 terms)
+            <pre>
+1
+2*x-1
+6*x^2-6*x+1
+20*x^3-30*x^2+12*x-1
+70*x^4-140*x^3+90*x^2-20*x+1
+252*x^5-630*x^4+560*x^3-210*x^2+30*x-1</pre>
+        </li>
     </ul>
 </div>
 </body>
 <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    
+
     const pointsEmt = document.getElementById('points-input');
     const primitiveEmt = document.getElementById('primitive-input');
     const x0Emt = document.getElementById('x0-input');
     const x1Emt = document.getElementById('x1-input');
     const lossEmt = document.getElementById('loss');
+    const coefficientsEmt = document.getElementById('coefficients');
 
     let points = null;
     let primitives = null;
@@ -240,7 +300,7 @@ x^8*(1-x)^0</pre>
                 fail('Expected number, variable, or (');
             }
         }
-        
+
         function parseNumber() {
             let number = '';
             while (digits.includes(peek())) {
@@ -345,7 +405,7 @@ ${arrow}`);
             .map((primitive, index) => ['*', coefficients[index], primitive])
             .reduce((a, b) => ['+', a, b]);
     }
-    
+
     function test(formula) {
         function serialize(expr) {
             if (typeof expr === 'number') {
@@ -389,7 +449,7 @@ ${arrow}`);
         y1 += ySpan * 0.1;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
+
         for (const [x, y] of samplePoints) {
             const x_ = (x - x0) / (x1 - x0) * canvas.width;
             const y_ = canvas.height - (y - y0) / (y1 - y0) * canvas.height;
@@ -397,7 +457,7 @@ ${arrow}`);
         }
 
 
-        
+
         let fullFunction_ = replaceOperators(fullFunction);
         ctx.beginPath();
         const [x0_, y0_] = pointTransform(x0, evaluate(fullFunction_, { x: x0 }));
@@ -435,7 +495,8 @@ ${arrow}`);
         if (newLoss < loss) {
             coefficients = newCoefficients;
             fullFunction = newFullFunction;
-            lossEmt.textContent = newLoss.toFixed(2);
+            lossEmt.textContent = newLoss.toFixed(6);
+            coefficientsEmt.textContent = newCoefficients.map(x => x.toFixed(4)).join(', ');
         }
     }
 
