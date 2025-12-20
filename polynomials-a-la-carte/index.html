@@ -118,8 +118,6 @@ const plot_point = (x,y, point_radius=1) => {
 }
 
 const plot = p => {
-	console.log(p(0), p(0.1), p(0.2), p(0.3), "...", p(1));
-	console.log("PLOTTING");
 	const w = cnv.width - 1;
 	ctx.beginPath();
 	const [x0, y0] = transform_point(0, p(0));
@@ -158,6 +156,7 @@ const go = () => {
 
 	ctx.lineWidth = 2;
 	ctx.strokeStyle = "#f88";
+	ctx.beginPath();
 	ctx.moveTo(0, cnv.height/2);
 	ctx.lineTo(cnv.width, cnv.height/2);
 	ctx.stroke();
@@ -166,8 +165,8 @@ const go = () => {
 	for (const p of fitted)
 		plot(p);
 
-	ctx.strokeStyle = "#000";
 	const p = add_poly(fitted);
+	ctx.strokeStyle = "#000";
 	plot(p);
 
 	plot_point(x1, y1, 5);
