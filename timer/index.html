@@ -1,0 +1,82 @@
+<style>
+* {
+	margin : 0;
+	padding: 0;
+}
+:root {
+	font-family: sans-serif;
+	font-size: 12pt;
+	--spacing-xxs: 0.24rem;
+	--spacing-xs:  0.38rem;
+	--spacing-s:   0.62rem;
+	--spacing-m:   1.00rem;
+	--spacing-l:   1.62rem;
+	--spacing-xl:  2.62rem;
+	--spacing-xxl: 4.24rem;
+}
+body {
+	display: flex;
+	flex-flow: column nowrap;
+	justify-content: start;
+	align-items: center;
+	height: 100%;
+	background: #e3cd86;
+}
+#timer {
+	font-size: 6rem;
+	margin-top: var(--spacing-xxl);
+	margin-bottom: var(--spacing-xl);
+}
+#intervalDisplay {
+	display: flex;
+	flex-flow: column nowrap;
+	align-items: center;
+	justify-content: start;
+	margin-top: var(--spacing-xxl);
+	gap: var(--spacing-l);
+}
+.interval {
+	font-size: 48pt;
+	color: #635c43;
+}
+#intervalBtn {
+	padding: var(--spacing-s);
+	border-radius: var(--spacing-xs);
+	min-width: 30ch;
+	border: none;
+	background: #000;
+	color: #fff;
+}
+</style>
+<span id=timer></span>
+<button id=intervalBtn>Interval</button>
+<div id=intervalDisplay></div>
+<script>
+const t0 = Number(new Date());
+let ts = t0;
+const intervals = [];
+function timeDisplay(elapsed) {
+	const seconds = elapsed % 60;
+	const minutes = Math.floor(elapsed / 60) % 60;
+	const hours   = Math.floor(elapsed / 3600);
+	return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toFixed(2).padStart(5, "0")}`;
+}
+function draw() {
+	const t1 = Number(new Date());
+	const elapsed = (t1 - t0) / 1000;
+	timer.innerHTML = timeDisplay(elapsed);
+}
+draw();
+const intervalId = setInterval(() => {
+	draw();
+}, 1);
+intervalBtn.addEventListener("click", () => {
+	const t1 = Number(new Date());
+	const dom = document.createElement("span");
+	dom.classList.add("interval");
+	dom.innerHTML = `${timeDisplay((t1 - t0) / 1000)} / ${timeDisplay((t1 - ts) / 1000)}`;
+	intervalDisplay.insertBefore(dom, intervalDisplay.firstChild);
+	intervals.push({ t0, ts, t1, dom });
+	ts = t1;
+});
+</script>
