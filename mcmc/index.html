@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.paper {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+}
+    </style>
+</head>
+<body>
+<div class="container paper">
+    <canvas id="canvas" width=800 height=600></canvas>
+    <textarea id="formula" placeholder="Enter a formula">sin(x * 1.5)^2 + 0.1</textarea>
+    <pre id="error" style="color: red;"></pre>
+</div>
+<script src="expressionparser.js"></script>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const viewport = {
+    xrange: [0, 10],
+    yrange: [-2, 2],
+    width: canvas.width,
+    height: canvas.height,
+};
+
+const app = {
+    formula: null,
+    expression: null,
+
+    graph: {
+        xs: null,
+        ys: null,
+    }
+};
+
+
+let metropolis = {
+    x: null,
+    xs: null,
+    ys: null,
+
+    init() {
+        this.x = this.uniformSample();
+        this.xs = [this.x];
+        this.ys = [evalExpression(app.expression, {...baseEnv, 'x': this.x})];
+    },
+    step() {
+        const x_old = this.x;
+        const y_old = this.ys[this.ys.length - 1];
+
+        const x_new = this.sample();
+        const y_new = x_new < viewport.xrange[0] || x_new > viewport.xrange[1] ? 0 : evalExpression(app.expression, {...baseEnv, 'x': x_new});
+
+        const accept_prob = Math.min(1, y_new / y_old);
+
+        if (Math.random() < accept_prob) {
+            this.x = x_new;
+
+            this.xs.push(this.x);
+            this.ys.push(y_new);
+        } else {
+            this.xs.push(this.x);
+            this.ys.push(y_old);
+        }
+    },
+    sample() {
+        if (Math.random() < 0) {
+            return this.uniformSample();
+        } else {
+            return this.metropolisSample();
+        }
+    },
+    uniformSample() {
+        return Math.random() * (viewport.xrange[1] - viewport.xrange[0]) + viewport.xrange[0];
+    },
+    metropolisSample() {
+        return this.x + (Math.random() + Math.random() + Math.random() - 1.5);
+    }
+};
+
+
+const offscreenPlot = {
+    canvas: null,
+    ctx: null,
+    init() {
+        this.canvas = document.createElement('canvas');
+        this.canvas.width = viewport.width;
+        this.canvas.height = viewport.height;
+        this.ctx = this.canvas.getContext('2d');
+    },
+    transform(x, y) {
+        return [
+            viewport.width * (x - viewport.xrange[0]) / (viewport.xrange[1] - viewport.xrange[0]),
+            viewport.height * (viewport.yrange[1] - y) / (viewport.yrange[1] - viewport.yrange[0]),
+        ];
+    },
+    addStroke(x0, y0, x1, y1) {
+        this.ctx.beginPath();
+        const [x0_, y0_] = this.transform(x0, y0);
+        const [x1_, y1_] = this.transform(x1, y1);
+        this.ctx.moveTo(x0_, y0_);
+        this.ctx.lineTo(x1_, y1_);
+        this.ctx.stroke();
+    },
+    clear() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+    draw() {
+        ctx.drawImage(this.canvas, 0, 0);
+    },
+};
+
+const view = {
+    drawnMetropolisCount: null,
+
+    init() {
+        this.drawnMetropolisCount = 0;
+    },
+};
+
+const histogram = {
+    bins: null,
+    init() {
+        this.bins = Array.from({ length: 50 }, () => 0);
+    },
+    add(x) {
+        if (x < viewport.xrange[0] || x > viewport.xrange[1]) {
+            return;
+        }
+        const i = Math.floor((x - viewport.xrange[0]) / (viewport.xrange[1] - viewport.xrange[0]) * this.bins.length);
+        this.bins[i]++;
+    },
+    draw() {
+        const max = Math.max(...this.bins);
+        const graphMax = Math.max(...app.graph.ys);
+        const scaling = graphMax / max * (viewport.height / (viewport.yrange[1] - viewport.yrange[0]));
+
+
+
+        // draw using rectangles
+        for (let i = 0; i < this.bins.length; i++) {
+            const height = this.bins[i] * scaling;
+            ctx.fillRect(
+                i * viewport.width / this.bins.length,
+                viewport.height - height - viewport.height / 2,
+                viewport.width / this.bins.length,
+                height
+            );
+        }
+    },
+};
+
+function plot(xs, ys, { separate = false } = {}) {
+    const { xrange, yrange, width, height } = viewport;
+    const [x0, x1] = xrange;
+    const [y0, y1] = yrange;
+    const xScale = width / (x1 - x0);
+    const yScale = height / (y1 - y0);
+    if (separate) {
+        for (let i = 1; i < xs.length; i++) {
+            ctx.beginPath();
+            ctx.moveTo(xScale * (xs[i-1] - x0), yScale * (y1 - ys[i-1]));
+            ctx.lineTo(xScale * (xs[i] - x0), yScale * (y1 - ys[i]));
+            ctx.stroke();
+        }
+    } else {
+        ctx.beginPath();
+        ctx.moveTo(xScale * (xs[0] - x0), yScale * (y1 - ys[0]));
+        for (let i = 1; i < xs.length; i++) {
+            ctx.lineTo(xScale * (xs[i] - x0), yScale * (y1 - ys[i]));
+        }
+        ctx.stroke();
+    }
+}
+
+function update() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const formula = document.getElementById('formula').value;
+    let expression = null;
+    try {
+        expression = parseExpression(formula);
+        document.getElementById('error').textContent = '';
+    } catch (error) {
+        document.getElementById('error').textContent = error.message;
+        return;
+    }
+    const xs = Array.from({ length: 101 }, (_, i) => i / 10);
+    const ys = xs.map(x => evalExpression(expression, {...baseEnv, x}));
+
+    app.formula = formula;
+    app.expression = expression;
+
+    app.graph.xs = xs;
+    app.graph.ys = ys;
+    metropolis.init();
+    offscreenPlot.init();
+    view.init();
+    histogram.init();
+}
+
+const baseEnv = {
+    sin: Math.sin,
+    cos: Math.cos,
+    tan: Math.tan,
+    sqrt: Math.sqrt,
+    pow: Math.pow,
+    log: Math.log,
+    exp: Math.exp,
+    abs: Math.abs,
+    max: Math.max,
+    '+': xs => xs.reduce((a, b) => a + b),
+    '-': xs => xs.reduce((a, b) => a - b),
+    '*': xs => xs.reduce((a, b) => a * b),
+    '/': xs => xs.reduce((a, b) => a / b),
+    '^': xs => xs.reduce((a, b) => a ** b),
+};
+
+function evalExpression(e, env) {
+    if (typeof e === 'number') {
+        return e;
+    } else if (typeof e === 'string') {
+        return env[e];
+    } else if (Array.isArray(e)) {
+        const [fn, ...args] = e;
+        if (typeof fn !== 'string') {
+            throw new Error(`Expected function name but got: ${fn}`);
+        }
+        if (typeof env[fn] !== 'function') {
+            throw new Error(`Function ${fn} not found`);
+        }
+        return env[fn](args.map(arg => evalExpression(arg, env)));
+    } else {
+        throw new Error(`Can't evaluate expression: ${e}`);
+    }
+}
+
+
+update();
+show();
+
+document.getElementById('formula').addEventListener('input', update);
+setInterval(show, 10);
+
+
+function show() {
+
+    const { xs, ys } = app.graph;
+
+
+    metropolis.step();
+    
+    offscreenPlot.ctx.strokeStyle = 'rgba(255, 0, 0, 0.01)';
+    offscreenPlot.ctx.lineWidth = 20;
+    while (view.drawnMetropolisCount < metropolis.xs.length) {
+
+        histogram.add(metropolis.xs[view.drawnMetropolisCount]);
+
+        if (view.drawnMetropolisCount > 0) {
+            const x0 = metropolis.xs[view.drawnMetropolisCount-1];
+            const y0 = metropolis.ys[view.drawnMetropolisCount-1] + Math.sin(view.drawnMetropolisCount-1) * 0.1;
+            const x1 = metropolis.xs[view.drawnMetropolisCount];
+            const y1 = metropolis.ys[view.drawnMetropolisCount] + Math.sin(view.drawnMetropolisCount) * 0.1;
+            offscreenPlot.addStroke(x0, y0, x1, y1);
+        }
+        view.drawnMetropolisCount++;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+
+    offscreenPlot.draw();
+
+    ctx.fillStyle = '#666';
+    histogram.draw();
+
+
+    {
+        const distanceToBottom = 0 - viewport.yrange[0];
+        const STEP = 0.005;
+        const maxVisibleMetropolisCount = distanceToBottom / STEP;
+        ctx.strokeStyle = 'rgba(255, 0, 0, 1)';
+        ctx.lineWidth = 1;
+        const xs = metropolis.xs.slice(-maxVisibleMetropolisCount);
+        const ys = metropolis.ys.slice(-maxVisibleMetropolisCount);
+        plot(xs, ys.map((y, i) => 0 - (ys.length - i) * STEP), { separate: true });
+    }
+
+
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 1;
+    plot(xs, ys);
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'black';
+    plot(viewport.xrange, [0, 0]);
+
+}
+</script>
+</body>
+</html>
